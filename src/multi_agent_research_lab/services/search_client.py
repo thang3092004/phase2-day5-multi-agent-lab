@@ -13,4 +13,15 @@ class SearchClient:
         TODO(student): Implement with Tavily, Bing, SerpAPI, internal docs, or a local mock.
         """
 
-        raise StudentTodoError("TODO(student): implement SearchClient.search")
+        # Minimal local mock search that returns placeholder SourceDocument objects.
+        results: list[SourceDocument] = []
+        for i in range(1, max_results + 1):
+            results.append(
+                SourceDocument(
+                    title=f"Mock result {i} for: {query}",
+                    url=f"https://example.com/search/{i}",
+                    snippet=f"This is a mocked snippet for '{query}' (result {i}).",
+                    metadata={"rank": i},
+                )
+            )
+        return results

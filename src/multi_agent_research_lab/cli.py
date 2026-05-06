@@ -1,5 +1,6 @@
 """Command-line entrypoint for the lab starter."""
 
+import os
 from typing import Annotated
 
 import typer
@@ -20,6 +21,13 @@ console = Console()
 def _init() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
+
+    # Enable LangSmith tracing if API key is configured
+    if settings.langsmith_api_key:
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
+        os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+        console.print(f"[cyan]LangSmith tracing enabled → project: {settings.langsmith_project}[/cyan]")
 
 
 @app.command()

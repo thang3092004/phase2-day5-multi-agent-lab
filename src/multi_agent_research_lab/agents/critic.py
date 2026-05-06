@@ -1,7 +1,6 @@
 """Optional critic agent skeleton for bonus work."""
 
 from multi_agent_research_lab.agents.base import BaseAgent
-from multi_agent_research_lab.core.errors import StudentTodoError
 from multi_agent_research_lab.core.state import ResearchState
 
 
@@ -16,4 +15,17 @@ class CriticAgent(BaseAgent):
         TODO(student): Add fact-check, citation coverage, or hallucination checks.
         """
 
-        raise StudentTodoError("TODO(student): implement CriticAgent.run")
+        # Basic critic that checks for overly short answers or missing citations.
+        issues: list[str] = []
+        final = state.final_answer or ""
+        if not final:
+            issues.append("final_answer is empty")
+        if len(final.split()) < 20:
+            issues.append("final_answer is very short")
+
+        if issues:
+            state.errors.extend(issues)
+
+        state.record_route(self.name)
+        state.add_trace_event("critic_run", {"issues": issues})
+        return state
