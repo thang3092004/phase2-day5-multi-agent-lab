@@ -29,53 +29,46 @@ class LLMClient:
 
         settings = get_settings()
 
-        # If an OpenAI API key is configured and the openai package is available,
-        # use the real API. Otherwise fall back to the local mock implementation.
-        if settings.openai_api_key:
+        if not settings.openai_api_key:
+            raise StudentTodoError("OPENAI_API_KEY is required; no fallback is allowed.")
+
+        try:
+            from openai import OpenAI
+        except Exception as exc:
+            raise StudentTodoError("openai package is required; install with `pip install -e .[llm]`.") from exc
+
+        client = OpenAI(api_key=settings.openai_api_key)
+        model = settings.openai_model
+
+        try:
+            resp = client.responses.create(
+                model=model,
+                input=[
+                    {"role": "system", "content": system_prompt or ""},
+                    {"role": "user", "content": user_prompt or ""},
+                ],
+                timeout=settings.timeout_seconds,
+            )
+        except Exception as exc:
+            raise StudentTodoError(f"OpenAI call failed: {exc}") from exc
+
+        # Extract text
+        content = ""
+        if getattr(resp, "output_text", None):
+            content = resp.output_text
+        elif getattr(resp, "output", None):
+            # Fallback to first output item content if available
             try:
-                import openai
-
-                openai.api_key = settings.openai_api_key
-                model = settings.openai_model
-                resp = openai.ChatCompletion.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt or ""},
-                        {"role": "user", "content": user_prompt or ""},
-                    ],
-                    timeout=settings.timeout_seconds,
-                )
-                # Extract text
-                text = ""
-                if resp and resp.choices:
-                    first = resp.choices[0]
-                    # Some SDKs return `message.content` for chat
-                    if getattr(first, "message", None) is not None:
-                        text = first.message.get("content", "")
-                    else:
-                        text = first.get("text", "")
-
-                usage = resp.get("usage", {}) if isinstance(resp, dict) else getattr(resp, "usage", None) or {}
-                total_tokens = usage.get("total_tokens") if isinstance(usage, dict) else None
-                cost = None
-                if total_tokens:
-                    # very rough cost estimate (placeholder)
-                    cost = float(total_tokens) * 0.000002
-
-                input_tokens = total_tokens
-                output_tokens = None
-                return LLMResponse(content=text, input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost)
+                content = resp.output[0].content[0].text
             except Exception:
-                # Fall back to mock on any import/runtime error
-                pass
+                content = ""
 
-        # Fallback mock
-        prompt = (system_prompt or "") + "\n\n" + (user_prompt or "")
-        content = prompt.strip()
+        usage = getattr(resp, "usage", None)
+        input_tokens = getattr(usage, "input_tokens", None) if usage else None
+        output_tokens = getattr(usage, "output_tokens", None) if usage else None
+        total_tokens = getattr(usage, "total_tokens", None) if usage else None
+        cost = None
+        if total_tokens:
+            cost = float(total_tokens) * 0.000002
 
-        # Very rough token estimate: 1 token ~= 4 chars
-        token_estimate = max(1, len(content) // 4)
-        # Tiny placeholder cost estimate
-        cost = token_estimate * 0.000001
-
-        return LLMResponse(content=content, input_tokens=token_estimate, output_tokens=token_estimate, cost_usd=cost)
+        return LLMResponse(content=content, input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost)

@@ -23,6 +23,7 @@ File gợi ý:
 - `src/multi_agent_research_lab/services/llm_client.py`
 
 TODO(student): thay baseline placeholder bằng một call LLM thật.
+Hoàn thành: baseline đã gọi LLM thật trong `services/llm_client.py` (không fallback).
 
 ## Milestone 2: Supervisor
 
@@ -32,6 +33,7 @@ File gợi ý:
 - `src/multi_agent_research_lab/graph/workflow.py`
 
 TODO(student): implement routing policy.
+Hoàn thành: Supervisor đã có routing policy (researcher -> analyst -> writer -> done) và guardrail max_iterations.
 
 Gợi ý câu hỏi thiết kế:
 
@@ -50,6 +52,7 @@ File gợi ý:
 - `agents/writer.py`
 
 TODO(student): implement từng worker.
+Hoàn thành: Researcher/Analyst/Writer/Critic đã implement logic cơ bản và ghi trace.
 
 ## Milestone 4: Trace và benchmark
 
